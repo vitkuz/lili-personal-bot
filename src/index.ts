@@ -8,6 +8,10 @@ import { BotCommands } from './constants/bot';
 
 const bot = new TelegramBot(config.botToken);
 
+export function isAllowedUser(userId: number): boolean {
+  return [1020685461, 210932263].includes(userId);
+}
+
 export const handler = async (event: any) => {
   try {
     const body = JSON.parse(event.body);
