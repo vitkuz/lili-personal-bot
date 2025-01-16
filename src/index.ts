@@ -1,6 +1,6 @@
 import TelegramBot from 'node-telegram-bot-api';
 import { config } from './config';
-import {handleStart} from './handlers/commands';
+import { handleStart, handleStatus } from './handlers/commands';
 import { handleImage } from "./handlers/image";
 import {t} from "./i18n/translate";
 import { isBotCommand } from './utils/bot';
@@ -12,7 +12,18 @@ export const handler = async (event: any) => {
   try {
     const body = JSON.parse(event.body);
     console.log('event:body',JSON.stringify(body, null, 2));
-    if (body.message) {
+    if (body.callback_query) {
+      const callbackQuery = body.callback_query;
+      const chatId = callbackQuery.message.chat.id;
+      const user = callbackQuery.from;
+      const data = callbackQuery.data;
+
+      if (data.startsWith('status_')) {
+        const predictionId = data.replace('status_', '');
+        await handleStatus(bot, chatId, user, predictionId);
+        await bot.answerCallbackQuery(callbackQuery.id);
+      }
+    } else if (body.message) {
       console.log('if:body.message',JSON.stringify(body, null, 2));
       const chatId = body.message.chat.id;
       const text = body.message.text;
@@ -45,6 +56,9 @@ export const handler = async (event: any) => {
             break;
           case BotCommands.IMAGE:
             await handleImage(bot, chatId, user, payload || '');
+            break;
+          case BotCommands.STATUS:
+            await handleStatus(bot, chatId, user, payload || '');
             break;
           default:
             await bot.sendMessage(chatId, t('errors.unknownCommand', user.language_code || 'ru', { command }));

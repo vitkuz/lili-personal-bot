@@ -1,6 +1,7 @@
 export enum BotCommands {
     START = '/start',
-    IMAGE = '/image'
+    IMAGE = '/image',
+    STATUS = '/status'
 }
 
 export enum ApiEndpoints {

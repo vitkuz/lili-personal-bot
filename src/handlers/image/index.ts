@@ -83,7 +83,17 @@ export async function handleImage(bot: TelegramBot, chatId: number, user: Telegr
                     id: task.predictionId,
                     status: task.status,
                     prompt: task.prompt
-                })
+                }),
+                {
+                    reply_markup: {
+                        inline_keyboard: [[
+                            {
+                                text: t('status.checkButton', lang),
+                                callback_data: `status_${task.predictionId}`
+                            }
+                        ]]
+                    }
+                }
             );
         }
     } catch (error) {
