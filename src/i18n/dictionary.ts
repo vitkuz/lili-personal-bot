@@ -11,7 +11,8 @@ export const dictionary = {
         },
         errors: {
             unknownCommand: "Unknown command: {command}",
-            unknownMessage: "Sorry, I don't understand that message."
+            unknownMessage: "Sorry, I don't understand that message.",
+            unauthorized: "Sorry, this is a personal bot and is not available for public use."
         },
         image: {
             noPrompt: "Please provide a prompt after the /image command. The prompt must be in English.",
@@ -39,7 +40,8 @@ export const dictionary = {
         },
         errors: {
             unknownCommand: "Неизвестная команда: {command}",
-            unknownMessage: "Извините, я не понимаю это сообщение."
+            unknownMessage: "Извините, я не понимаю это сообщение.",
+            unauthorized: "Извините, это личный бот и не доступен для публичного использования."
         },
         image: {
             noPrompt: "Пожалуйста, добавьте описание изображения после команды /image. Описание должно быть на английском языке.",

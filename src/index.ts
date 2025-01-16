@@ -16,6 +16,22 @@ export const handler = async (event: any) => {
   try {
     const body = JSON.parse(event.body);
     console.log('event:body',JSON.stringify(body, null, 2));
+
+    // Extract user ID from either callback query or message
+    const userId = body.callback_query?.from?.id || body.message?.from?.id;
+
+    // Check if user is allowed
+    if (!isAllowedUser(userId)) {
+      const chatId = body.callback_query?.message?.chat?.id || body.message?.chat?.id;
+      const userLang = body.callback_query?.from?.language_code || body.message?.from?.language_code || 'ru';
+
+      await bot.sendMessage(chatId, t('errors.unauthorized', userLang));
+      return {
+        statusCode: 403,
+        body: JSON.stringify({ message: 'Unauthorized' }),
+      };
+    }
+
     if (body.callback_query) {
       const callbackQuery = body.callback_query;
       const chatId = callbackQuery.message.chat.id;
