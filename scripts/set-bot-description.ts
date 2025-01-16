@@ -14,8 +14,8 @@ async function updateBotDescription() {
     try {
         // Descriptions for different languages
         const descriptions = [
-            { language_code: 'en', description: 'Your AI Recruiter and Digital HR Assistant. Finding the perfect job for you! @siberian_lily' },
-            { language_code: 'ru', description: 'Ваш ИИ-рекрутер и цифровой HR-помощник. Поможем найти работу мечты! @siberian_lily' },
+            { language_code: 'en', description: "AI Image Generation Bot - Create unique images using artificial intelligence" },
+            { language_code: 'ru', description: "Бот для генерации изображений с помощью искусственного интеллекта" },
         ];
 
         // Update the description for each language

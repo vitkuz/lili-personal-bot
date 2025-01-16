@@ -26,12 +26,22 @@ export const handler = async (event: any) => {
 
       // Check if the text starts with a slash
       if (isBotCommand(text)) {
-        const [command, payload] = text.split(' ', 2); // Split into command and optional payload
-        console.log({ command, payload });
+        const [command, ...payloadParts] = text.split(' '); // Split command and keep all payload parts
+        const payload = payloadParts.join(' '); // Join payload parts back together
 
         switch (command) {
           case BotCommands.START:
-            await handleStart(bot, chatId, user);
+            const commands = [
+              { command: BotCommands.START, description: t('commands.start', user.language_code) },
+              { command: BotCommands.IMAGE, description: t('commands.image', user.language_code) }
+            ];
+
+            const commandsList = commands
+                .map(cmd => `${cmd.command} - ${cmd.description}`)
+                .join('\n');
+
+            await bot.sendMessage(chatId, t('welcome.greeting', user.language_code, { name: user.first_name }));
+            await bot.sendMessage(chatId, t('welcome.commands', user.language_code, { commands: commandsList }));
             break;
           case BotCommands.IMAGE:
             await handleImage(bot, chatId, user, payload || '');

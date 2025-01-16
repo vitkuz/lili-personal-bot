@@ -3,16 +3,21 @@ import { generateImage } from './generate-image';
 import { logger } from '../../utils/logger';
 import { t } from '../../i18n/translate';
 import { DefaultLanguage } from '../../constants/bot';
-import { TelegramUser } from '../../types'; 
+import { TelegramUser } from '../../types';
 import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
 import { createDynamoDBClient } from '../../config/dynamodb';
 import { config } from '../../config';
 
+interface ImageTask {
+    predictionId: string;
+    status: string;
+    prompt: string;
+}
+
 const docClient = createDynamoDBClient();
 
-async function recordImageTask(predictionId: string, status: string, chatId: number) {
+async function recordImageTask(predictionId: string, status: string, chatId: number, prompt: string) {
     const now = new Date();
-    const ttl = Math.floor(now.getTime() / 1000) + 24 * 60 * 60; // 24 hours TTL
 
     await docClient.send(new PutCommand({
         TableName: config.tables.imageGenerationTask,
@@ -20,17 +25,38 @@ async function recordImageTask(predictionId: string, status: string, chatId: num
             predictionId,
             status,
             chatId,
+            prompt,
             createdAt: now.toISOString(),
-            updatedAt: now.toISOString(),
-            ttl
+            updatedAt: now.toISOString()
         }
     }));
 }
 
+async function generateAndRecordTask(prompt: string, chatId: number): Promise<ImageTask> {
+    const result = await generateImage(prompt);
+    await recordImageTask(result.id, result.status, chatId, prompt);
+    return {
+        predictionId: result.id,
+        status: result.status,
+        prompt
+    };
+}
+
 export async function handleImage(bot: TelegramBot, chatId: number, user: TelegramUser, prompt: string) {
     const lang = user.language_code || DefaultLanguage.CODE;
-    
+
     if (!prompt) {
+        await bot.sendMessage(
+            chatId,
+            t('image.noPrompt', lang)
+        );
+        return;
+    }
+
+    // Split prompts by empty lines and filter out empty prompts
+    const prompts = prompt.split('\n\n').map(p => p.trim()).filter(p => p.length > 0);
+
+    if (prompts.length === 0) {
         await bot.sendMessage(
             chatId,
             t('image.noPrompt', lang)
@@ -41,21 +67,25 @@ export async function handleImage(bot: TelegramBot, chatId: number, user: Telegr
     try {
         await bot.sendMessage(
             chatId,
-            t('image.generating', lang)
+            t('image.generating', lang, { count: prompts.length })
         );
 
-        const result = await generateImage(prompt);
-        
-        // Record the task in DynamoDB
-        await recordImageTask(result.id, result.status, chatId);
-        
-        await bot.sendMessage(
-            chatId,
-            t('image.taskCreated', lang, { 
-                id: result.id,
-                status: result.status 
-            })
+        // Generate and record all tasks
+        const tasks = await Promise.all(
+            prompts.map(p => generateAndRecordTask(p, chatId))
         );
+
+        // Send confirmation for each task
+        for (const task of tasks) {
+            await bot.sendMessage(
+                chatId,
+                t('image.taskCreated', lang, {
+                    id: task.predictionId,
+                    status: task.status,
+                    prompt: task.prompt
+                })
+            );
+        }
     } catch (error) {
         logger.error('Image generation failed', error as Error);
         await bot.sendMessage(
