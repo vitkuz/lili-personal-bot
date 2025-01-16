@@ -12,11 +12,12 @@ interface ImageTask {
     predictionId: string;
     status: string;
     prompt: string;
+    lang: string;
 }
 
 const docClient = createDynamoDBClient();
 
-async function recordImageTask(predictionId: string, status: string, chatId: number, prompt: string) {
+async function recordImageTask(predictionId: string, status: string, chatId: number, prompt: string, lang: string) {
     const now = new Date();
 
     await docClient.send(new PutCommand({
@@ -26,19 +27,21 @@ async function recordImageTask(predictionId: string, status: string, chatId: num
             status,
             chatId,
             prompt,
+            lang,
             createdAt: now.toISOString(),
             updatedAt: now.toISOString()
         }
     }));
 }
 
-async function generateAndRecordTask(prompt: string, chatId: number): Promise<ImageTask> {
+async function generateAndRecordTask(prompt: string, chatId: number, lang: string): Promise<ImageTask> {
     const result = await generateImage(prompt);
-    await recordImageTask(result.id, result.status, chatId, prompt);
+    await recordImageTask(result.id, result.status, chatId, prompt, lang);
     return {
         predictionId: result.id,
         status: result.status,
-        prompt
+        prompt,
+        lang
     };
 }
 
@@ -72,7 +75,7 @@ export async function handleImage(bot: TelegramBot, chatId: number, user: Telegr
 
         // Generate and record all tasks
         const tasks = await Promise.all(
-            prompts.map(p => generateAndRecordTask(p, chatId))
+            prompts.map(p => generateAndRecordTask(p, chatId, lang))
         );
 
         // Send confirmation for each task

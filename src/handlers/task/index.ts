@@ -26,6 +26,7 @@ interface TaskRecord {
     createdAt?: string;
     updatedAt?: string;
     prompt: string;
+    lang: string;
     ttl?: number;
     output?: string[];
     images?: string[];
@@ -71,15 +72,15 @@ async function downloadAndUploadToS3(imageUrl: string): Promise<string> {
         throw error;
     }
 }
-async function recordTask(task: Partial<TaskRecord> & { predictionId: string }, chatId: number) {
+async function recordTask(task: Partial<TaskRecord> & { predictionId: string }) {
     const now = new Date();
 
     try {
-        // First get the existing record
-        const existingRecord = await docClient.send(new GetCommand({
-            TableName: config.tables.imageGenerationTask,
-            Key: { predictionId: task.predictionId }
-        }));
+        // First get the existing record //todo: whY
+        // const existingRecord = await docClient.send(new GetCommand({
+        //     TableName: config.tables.imageGenerationTask,
+        //     Key: { predictionId: task.predictionId }
+        // }));
 
         // Prepare update expression and attribute values
         const updateExpr = ['set updatedAt = :updatedAt'];
@@ -102,6 +103,16 @@ async function recordTask(task: Partial<TaskRecord> & { predictionId: string }, 
             exprAttrValues[':images'] = task.images;
         }
 
+        if (task.lang) {
+            updateExpr.push('lang = :lang');
+            exprAttrValues[':lang'] = task.lang;
+        }
+
+        if (task.chatId) {
+            updateExpr.push('chatId = :chatId');
+            exprAttrValues[':chatId'] = task.chatId;
+        }
+
         // Update the record
         await docClient.send(new UpdateCommand({
             TableName: config.tables.imageGenerationTask,
@@ -118,12 +129,13 @@ async function recordTask(task: Partial<TaskRecord> & { predictionId: string }, 
 async function pollPredictionStatus(predictionId: string): Promise<TaskRecord | null> {
     try {
         const response = await axios.get(`${ApiEndpoints.IMAGE_GENERATION}?predictionId=${predictionId}`);
-        const { id, status, output, prompt } = response.data;
+        const { id, status, output, prompt, lang } = response.data;
         return {
             predictionId: id,
             status,
             output,
             prompt,
+            lang,
             chatId: 0 // This will be overwritten when recording
         };
     } catch (error) {
@@ -135,7 +147,7 @@ async function pollPredictionStatus(predictionId: string): Promise<TaskRecord | 
 async function sendImagesToTelegram(chatId: number, images: string[], task: TaskRecord) {
     try {
         for (const imageUrl of images) {
-            const caption = t('image.generated', DefaultLanguage.CODE, {
+            const caption = t('image.generated', task.lang || DefaultLanguage.CODE, {
                 prompt: task.prompt,
                 link: imageUrl
             });
@@ -167,7 +179,7 @@ async function handleTaskUpdate(newImage: TaskRecord) {
             }
 
             currentStatus = updatedTask.status;
-            await recordTask(updatedTask, newImage.chatId);
+            // await recordTask(updatedTask);
             attempts++;
 
             if (currentStatus === TaskStatus.SUCCEEDED && updatedTask.output) {
@@ -181,7 +193,7 @@ async function handleTaskUpdate(newImage: TaskRecord) {
                     ...updatedTask,
                     images: s3Images
                 };
-                await recordTask(taskWithImages, newImage.chatId);
+                await recordTask(taskWithImages);
 
                 // Send images to Telegram
                 await sendImagesToTelegram(newImage.chatId, s3Images, updatedTask);
