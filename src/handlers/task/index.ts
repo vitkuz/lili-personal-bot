@@ -5,8 +5,10 @@ import TelegramBot from 'node-telegram-bot-api';
 import { logger } from '../../utils/logger';
 import { config } from '../../config';
 import { ApiEndpoints } from '../../constants/bot';
+import { t } from '../../i18n/translate';
+import { DefaultLanguage } from '../../constants/bot';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-import { PutCommand } from '@aws-sdk/lib-dynamodb';
+import { PutCommand, GetCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { createDynamoDBClient } from '../../config/dynamodb';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -23,6 +25,7 @@ interface TaskRecord {
     chatId: number;
     createdAt?: string;
     updatedAt?: string;
+    prompt: string;
     ttl?: number;
     output?: string[];
     images?: string[];
@@ -68,33 +71,59 @@ async function downloadAndUploadToS3(imageUrl: string): Promise<string> {
         throw error;
     }
 }
-async function recordTask(task: Pick<TaskRecord, 'predictionId' | 'status' | 'output' | 'images'>, chatId: number) {
+async function recordTask(task: Partial<TaskRecord> & { predictionId: string }, chatId: number) {
     const now = new Date();
-    const ttl = Math.floor(now.getTime() / 1000) + 24 * 60 * 60; // 24 hours TTL
 
-    await docClient.send(new PutCommand({
-        TableName: config.tables.imageGenerationTask,
-        Item: {
-            predictionId: task.predictionId,
-            status: task.status,
-            output: task.output,
-            images: task.images,
-            chatId,
-            createdAt: now.toISOString(),
-            updatedAt: now.toISOString(),
-            ttl
+    try {
+        // First get the existing record
+        const existingRecord = await docClient.send(new GetCommand({
+            TableName: config.tables.imageGenerationTask,
+            Key: { predictionId: task.predictionId }
+        }));
+
+        // Prepare update expression and attribute values
+        const updateExpr = ['set updatedAt = :updatedAt'];
+        const exprAttrValues: any = {
+            ':updatedAt': now.toISOString()
+        };
+
+        if (task.status) {
+            updateExpr.push('status = :status');
+            exprAttrValues[':status'] = task.status;
         }
-    }));
+
+        if (task.output) {
+            updateExpr.push('output = :output');
+            exprAttrValues[':output'] = task.output;
+        }
+
+        if (task.images) {
+            updateExpr.push('images = :images');
+            exprAttrValues[':images'] = task.images;
+        }
+
+        // Update the record
+        await docClient.send(new UpdateCommand({
+            TableName: config.tables.imageGenerationTask,
+            Key: { predictionId: task.predictionId },
+            UpdateExpression: updateExpr.join(', '),
+            ExpressionAttributeValues: exprAttrValues
+        }));
+    } catch (error) {
+        logger.error('Failed to update task record', error as Error);
+        throw error;
+    }
 }
 
 async function pollPredictionStatus(predictionId: string): Promise<TaskRecord | null> {
     try {
         const response = await axios.get(`${ApiEndpoints.IMAGE_GENERATION}?predictionId=${predictionId}`);
-        const { id, status, output } = response.data;
+        const { id, status, output, prompt } = response.data;
         return {
             predictionId: id,
             status,
             output,
+            prompt,
             chatId: 0 // This will be overwritten when recording
         };
     } catch (error) {
@@ -103,12 +132,16 @@ async function pollPredictionStatus(predictionId: string): Promise<TaskRecord | 
     }
 }
 
-async function sendImagesToTelegram(chatId: number, images: string[]) {
+async function sendImagesToTelegram(chatId: number, images: string[], task: TaskRecord) {
     try {
         for (const imageUrl of images) {
-            // Send the photo
+            const caption = t('image.generated', DefaultLanguage.CODE, {
+                prompt: task.prompt,
+                link: imageUrl
+            });
+
             await bot.sendPhoto(chatId, imageUrl, {
-                caption: `🔗 Download link: ${imageUrl}`
+                caption
             });
         }
     } catch (error) {
@@ -125,7 +158,7 @@ async function handleTaskUpdate(newImage: TaskRecord) {
 
         while (currentStatus !== TaskStatus.SUCCEEDED && attempts < maxAttempts) {
             await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3 seconds
-            
+
             const updatedTask = await pollPredictionStatus(newImage.predictionId);
             if (!updatedTask) {
                 // @ts-ignore
@@ -151,7 +184,7 @@ async function handleTaskUpdate(newImage: TaskRecord) {
                 await recordTask(taskWithImages, newImage.chatId);
 
                 // Send images to Telegram
-                await sendImagesToTelegram(newImage.chatId, s3Images);
+                await sendImagesToTelegram(newImage.chatId, s3Images, updatedTask);
             }
         }
     }

@@ -18,11 +18,11 @@ const descriptions = [
 const names = [
     {
         language_code: 'ru', // Russian
-        name: "AI Image Generator Bot"
+        name: "Personal Lily's Bot"
     },
     {
         language_code: 'en', // English
-        name: "AI Image Generator Bot"
+        name: "Персональный Бот Лилии"
     }
 ];
 
