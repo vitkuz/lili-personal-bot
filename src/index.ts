@@ -1,6 +1,6 @@
 import TelegramBot from 'node-telegram-bot-api';
 import { config } from './config';
-import { handleStart, handleStatus } from './handlers/commands';
+import { handleStatus } from './handlers/commands';
 import { handleImage } from "./handlers/image";
 import {t} from "./i18n/translate";
 import { isBotCommand } from './utils/bot';
@@ -9,7 +9,7 @@ import { BotCommands } from './constants/bot';
 const bot = new TelegramBot(config.botToken);
 
 export function isAllowedUser(userId: number): boolean {
-  return [1020685461, 210932263].includes(userId);
+  return [1020685461, 5246112454].includes(userId); // lily, vit
 }
 
 export const handler = async (event: any) => {
@@ -17,18 +17,16 @@ export const handler = async (event: any) => {
     const body = JSON.parse(event.body);
     console.log('event:body',JSON.stringify(body, null, 2));
 
-    // Extract user ID from either callback query or message
-    const userId = body.callback_query?.from?.id || body.message?.from?.id;
+    const chatId = body.message?.chat?.id || body.callback_query?.message?.chat?.id;
+    const user = body.message?.from || body.callback_query?.from;
+    const userId = user.id;
+    const userLang = user.language_code;
 
-    // Check if user is allowed
-    if (!isAllowedUser(userId)) {
-      const chatId = body.callback_query?.message?.chat?.id || body.message?.chat?.id;
-      const userLang = body.callback_query?.from?.language_code || body.message?.from?.language_code || 'ru';
-
+    if(!isAllowedUser(userId)) {
       await bot.sendMessage(chatId, t('errors.unauthorized', userLang));
       return {
-        statusCode: 403,
-        body: JSON.stringify({ message: 'Unauthorized' }),
+        statusCode: 200,
+        body: JSON.stringify({ message: 'Success' }),
       };
     }
 
@@ -37,7 +35,6 @@ export const handler = async (event: any) => {
       const chatId = callbackQuery.message.chat.id;
       const user = callbackQuery.from;
       const data = callbackQuery.data;
-
       if (data.startsWith('status_')) {
         const predictionId = data.replace('status_', '');
         await handleStatus(bot, chatId, user, predictionId);
