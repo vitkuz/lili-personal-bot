@@ -59,7 +59,6 @@ async function downloadAndUploadToS3(imageUrl: string): Promise<string> {
             Key: key,
             Body: buffer,
             ContentType: `image/${extension}`,
-            ACL: 'public-read'
         }));
 
         // Return public URL
@@ -165,21 +164,21 @@ export const handler = async (event: DynamoDBStreamEvent, context: Context) => {
     });
 
     for (const record of event.Records) {
-        // @ts-ignore
-        const oldImage = record.dynamodb?.OldImage ? unmarshall(record.dynamodb.OldImage) as TaskRecord : undefined;
-        // @ts-ignore
-        const newImage = record.dynamodb?.NewImage ? unmarshall(record.dynamodb.NewImage) as TaskRecord : undefined;
+        if (record.eventName === 'INSERT') {
+            // Unmarshal the NewImage (only available for INSERT and MODIFY events)
+            const newImage = record.dynamodb?.NewImage
+                // @ts-ignore
+                ? unmarshall(record.dynamodb.NewImage) as TaskRecord
+                : undefined;
 
-        logger.info('Processing record', {
-            eventId: record.eventID,
-            eventName: record.eventName,
-            streamViewType: record.dynamodb?.StreamViewType,
-            oldImage,
-            newImage
-        });
+            logger.info('Processing INSERT record', {
+                eventId: record.eventID,
+                newImage
+            });
 
-        if (newImage) {
-            await handleTaskUpdate(newImage);
+            if (newImage) {
+                await handleTaskUpdate(newImage);
+            }
         }
     }
 };

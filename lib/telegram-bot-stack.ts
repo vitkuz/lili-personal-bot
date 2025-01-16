@@ -5,6 +5,7 @@ import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as logs from 'aws-cdk-lib/aws-logs';
+import * as lambdaEventSources from "aws-cdk-lib/aws-lambda-event-sources";
 import { Construct } from 'constructs';
 import { config } from 'dotenv';
 
@@ -13,8 +14,6 @@ config();
 export class LiliPersonalBotStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
-
-    // const { botTokenValue } = loadEnvVariables();
 
     const layer = new lambda.LayerVersion(this, 'SharedModules', {
       code: lambda.Code.fromAsset('lambda-layer'),
@@ -37,8 +36,8 @@ export class LiliPersonalBotStack extends cdk.Stack {
 
     // Create S3 bucket for bot images
     const botImagesBucket = new s3.Bucket(this, 'BotImagesBucket', {
-      websiteIndexDocument: 'index.html',
-      websiteErrorDocument: 'index.html',
+      // websiteIndexDocument: 'index.html',
+      // websiteErrorDocument: 'index.html',
       removalPolicy: cdk.RemovalPolicy.DESTROY, // NOT recommended for production code
       publicReadAccess: true,
       blockPublicAccess: {
@@ -60,8 +59,12 @@ export class LiliPersonalBotStack extends cdk.Stack {
         IMAGE_GENERATION_TASK_TABLE: imageGenerationTaskTable.tableName,
         BOT_TOKEN: botTokenValue,
         BOT_IMAGES_BUCKET: botImagesBucket.bucketName,
+        DEPLOY_TIME: `${Date.now()}`
       },
     });
+
+    // Grant DynamoDB permissions to Lambda
+    imageGenerationTaskTable.grantReadWriteData(botHandler);
 
     // Task Handler Lambda
     const taskHandler = new lambda.Function(this, 'TaskHandler', {
@@ -75,21 +78,17 @@ export class LiliPersonalBotStack extends cdk.Stack {
         IMAGE_GENERATION_TASK_TABLE: imageGenerationTaskTable.tableName,
         BOT_TOKEN: botTokenValue,
         BOT_IMAGES_BUCKET: botImagesBucket.bucketName,
+        DEPLOY_TIME: `${Date.now()}`,
       },
     });
 
-    // Grant DynamoDB permissions to Lambda
-    imageGenerationTaskTable.grantReadWriteData(botHandler);
     imageGenerationTaskTable.grantReadWriteData(taskHandler);
     botImagesBucket.grantReadWrite(taskHandler);
 
-    // Add DynamoDB Stream trigger to Task Handler
-    taskHandler.addEventSourceMapping('TaskTableTrigger', {
-      eventSourceArn: imageGenerationTaskTable.tableStreamArn!,
+    taskHandler.addEventSource(new lambdaEventSources.DynamoEventSource(imageGenerationTaskTable, {
       startingPosition: lambda.StartingPosition.LATEST,
-      batchSize: 1,
-      retryAttempts: 3
-    });
+      batchSize: 1, // Optional: Customize the batch size for processing
+    }));
 
     // API Gateway
     const telegramBotApi = new apigateway.RestApi(this, 'TelegramBotApi', {
