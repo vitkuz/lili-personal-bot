@@ -20,8 +20,9 @@ export function t(key: string, lang: string = 'ru', params: Record<string, any> 
         return key;
     }
 
-    // Replace parameters in translation
+    // Replace parameters in translation (replace all matches)
     return Object.entries(params).reduce((text, [param, value]) => {
-        return text.replace(`{${param}}`, String(value));
+        const regex = new RegExp(`\\{${param}\\}`, 'g'); // Match all occurrences of {param}
+        return text.replace(regex, String(value));
     }, translation);
 }
