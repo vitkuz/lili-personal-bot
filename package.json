@@ -1,0 +1,40 @@
+{
+  "name": "telegram-bot-aws-fork",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "tsc",
+    "cdk": "cdk",
+    "deploy": "cdk deploy -y",
+    "create-layer": "ts-node scripts/create-layer.ts",
+    "update-secret": "ts-node scripts/update-secret.ts",
+    "set-bot-description": "ts-node scripts/set-bot-description.ts",
+    "set-initial-message": "ts-node scripts/set-initial-message",
+    "setup-webhook": "ts-node scripts/setup-webhook",
+    "update-commands": "ts-node scripts/update-commands"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.441.0",
+    "@aws-sdk/client-secrets-manager": "^3.714.0",
+    "@aws-sdk/client-s3": "^3.441.0",
+    "@aws-sdk/lib-dynamodb": "^3.441.0",
+    "aws-cdk-lib": "^2.101.1",
+    "axios": "^1.6.0",
+    "constructs": "^10.3.0",
+    "dotenv": "^16.3.1",
+    "node-telegram-bot-api": "^0.63.0",
+    "uuid": "^9.0.1",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.146",
+    "@types/jest": "^29.5.6",
+    "@types/node": "^20.8.9",
+    "@types/node-telegram-bot-api": "^0.63.0",
+    "@types/uuid": "^9.0.8",
+    "aws-cdk": "^2.101.1",
+    "aws-lambda": "^1.0.7",
+    "jest": "^29.7.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.2.2"
+  }
+}
