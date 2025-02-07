@@ -143,26 +143,6 @@ async function sendImagesToTelegram(chatId: number, images: string[], task: Task
             await bot.sendPhoto(chatId, imageUrl, {
                 caption
             });
-
-            // Define the inline keyboard buttons
-            // const options = {
-            //     reply_markup: {
-            //         inline_keyboard: [
-            //             [
-            //                 {
-            //                     text: t('image.generateAgain', lang || DefaultLanguage.CODE),
-            //                     callback_data: `image_${prompt}`
-            //                 },
-            //             ]
-            //         ]
-            //     }
-            // };
-
-            // await bot.sendPhoto(chatId, imageUrl, {
-            //     caption,
-            //     ...options
-            // });
-
         }
     } catch (error) {
         logger.error('Failed to send images to Telegram', error as Error);

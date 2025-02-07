@@ -10,14 +10,16 @@ const translations = [
         language_code: 'en', // English
         commands: [
             { command: BotCommands.START.slice(1), description: 'Start the bot' },
-            { command: BotCommands.IMAGE.slice(1), description: 'Generate an image based on your description' }
+            { command: BotCommands.IMAGE.slice(1), description: 'Generate an image based on your description' },
+            { command: BotCommands.VIDEO.slice(1), description: 'Generate an video based on your description' }
         ]
     },
     {
         language_code: 'ru', // Russian
         commands: [
             { command: BotCommands.START.slice(1), description: 'Запустить бота' },
-            { command: BotCommands.IMAGE.slice(1), description: 'Сгенерировать изображение по вашему описанию' }
+            { command: BotCommands.IMAGE.slice(1), description: 'Сгенерировать изображение по вашему описанию' },
+            { command: BotCommands.VIDEO.slice(1), description: 'Сгенерировать видео по вашему описанию' }
         ]
     }
 ];
