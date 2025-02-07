@@ -19,7 +19,8 @@ export const dictionary = {
             generating: "🎨 Generating {count} image(s)...",
             taskCreated: "✨ Image generation task created!\n\nID: {id}\nStatus: {status}\nPrompt: {prompt}\n\nCheck status with /status {id}",
             error: "❌ Sorry, there was an error generating your image. Please try again later.",
-            generated: "🎨 Generated from prompt:\n{prompt}\n\n🔗 Download link: {link}"
+            generated: "🎨 Generated from prompt:\n{prompt}\n\n🔗 Download link: {link}",
+            generateAgain: "🎨 Generate Again",
         },
         status: {
             noId: "Please provide a task ID after the /status command",
@@ -48,7 +49,8 @@ export const dictionary = {
             generating: "🎨 Генерирую {count} изображение(й)...",
             taskCreated: "✨ Задача на генерацию изображения создана!\n\nID: {id}\nСтатус: {status}\nОписание: {prompt}\n\nПроверить статус: /status {id}",
             error: "❌ Извините, произошла ошибка при генерации изображения. Пожалуйста, попробуйте позже.",
-            generated: "🎨 Сгенерировано по описанию:\n{prompt}\n\n🔗 Ссылка для скачивания: {link}"
+            generated: "🎨 Сгенерировано по описанию:\n{prompt}\n\n🔗 Ссылка для скачивания: {link}",
+            generateAgain: "🎨 Сгенерировать снова"
         },
         status: {
             noId: "Пожалуйста, укажите ID задачи после команды /status",

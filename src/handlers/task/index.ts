@@ -8,7 +8,7 @@ import { ApiEndpoints } from '../../constants/bot';
 import { t } from '../../i18n/translate';
 import { DefaultLanguage } from '../../constants/bot';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-import { PutCommand, GetCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { createDynamoDBClient } from '../../config/dynamodb';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -119,8 +119,8 @@ async function recordTask(task: Partial<TaskRecord> & { predictionId: string }) 
 
 async function pollPredictionStatus(predictionId: string): Promise<TaskStatusRecord | null> {
     try {
-        const response = await axios.get(`${ApiEndpoints.IMAGE_GENERATION}?predictionId=${predictionId}`);
-        const { id, status, output, prompt, lang } = response.data;
+        const response = await axios.get(`${ApiEndpoints.IMAGE_GENERATION}/${predictionId}`);
+        const { id, status, output, prompt, lang } = response.data.data;
         return {
             predictionId: id,
             status,
@@ -143,6 +143,26 @@ async function sendImagesToTelegram(chatId: number, images: string[], task: Task
             await bot.sendPhoto(chatId, imageUrl, {
                 caption
             });
+
+            // Define the inline keyboard buttons
+            // const options = {
+            //     reply_markup: {
+            //         inline_keyboard: [
+            //             [
+            //                 {
+            //                     text: t('image.generateAgain', lang || DefaultLanguage.CODE),
+            //                     callback_data: `image_${prompt}`
+            //                 },
+            //             ]
+            //         ]
+            //     }
+            // };
+
+            // await bot.sendPhoto(chatId, imageUrl, {
+            //     caption,
+            //     ...options
+            // });
+
         }
     } catch (error) {
         logger.error('Failed to send images to Telegram', error as Error);

@@ -28,16 +28,28 @@ export async function handleStatus(bot: TelegramBot, chatId: number, user: Teleg
       return;
     }
 
-    const { status, prompt, createdAt } = result.Item;
+    const task = result.Item;
+
     await bot.sendMessage(
         chatId,
         t('status.current', lang, {
-          id: predictionId,
-          status,
-          prompt,
-          createdAt: new Date(createdAt).toLocaleString()
-        })
+          id: task.predictionId,
+          status: task.status,
+          prompt: task.prompt,
+          createdAt: new Date(task.createdAt).toLocaleString()
+        }),
+        {
+          reply_markup: {
+            inline_keyboard: [[
+              {
+                text: t('status.checkButton', lang),
+                callback_data: `status_${task.predictionId}`
+              }
+            ]]
+          }
+        }
     );
+
   } catch (error) {
     logger.error('Failed to get task status', error as Error);
     await bot.sendMessage(chatId, t('errors.unknownError', lang));

@@ -1,25 +1,28 @@
 import axios from 'axios';
 import { ImageGenerationResponse } from './types';
 import { logger } from '../../utils/logger';
-import { ApiEndpoints, ImageGenerationDefaults } from '../../constants/bot';
+import { ApiEndpoints } from '../../constants/bot';
 
-export async function generateImage(prompt: string): Promise<ImageGenerationResponse> {
+export async function generateImage(prompt: string){
     const request = {
-        version: ImageGenerationDefaults.VERSION,
-        input: {
-            model: ImageGenerationDefaults.MODEL,
-            prompt,
-            go_fast: false,
-            lora_scale: ImageGenerationDefaults.LORA_SCALE,
-            megapixels: ImageGenerationDefaults.MEGAPIXELS,
-            num_outputs: ImageGenerationDefaults.NUM_OUTPUTS,
-            aspect_ratio: ImageGenerationDefaults.ASPECT_RATIO,
-            output_format: ImageGenerationDefaults.OUTPUT_FORMAT,
-            guidance_scale: ImageGenerationDefaults.GUIDANCE_SCALE,
-            output_quality: ImageGenerationDefaults.OUTPUT_QUALITY,
-            prompt_strength: ImageGenerationDefaults.PROMPT_STRENGTH,
-            extra_lora_scale: ImageGenerationDefaults.EXTRA_LORA_SCALE,
-            num_inference_steps: ImageGenerationDefaults.NUM_INFERENCE_STEPS
+        "taskType": "replicate:images",
+        "input": {
+            "version": "vitkuz/lily-new-photos:0c6c34796d96cab58e402583cbed80fd6cffb16328de842265ac8ad727854f66",
+            "input": {
+                "model": "dev",
+                "go_fast": false,
+                "lora_scale": 1,
+                "megapixels": "1",
+                "num_outputs": 2,
+                "aspect_ratio": "9:16",
+                "output_format": "jpg",
+                "guidance_scale": 3,
+                "output_quality": 100,
+                "prompt_strength": 0.8,
+                "extra_lora_scale": 1,
+                "num_inference_steps": 28,
+                prompt
+            }
         }
     };
 
@@ -31,7 +34,7 @@ export async function generateImage(prompt: string): Promise<ImageGenerationResp
         });
 
         logger.debug('Image generation response', response.data);
-        return response.data;
+        return response.data.data;
     } catch (error) {
         logger.error('Failed to generate image', error as Error);
         throw new Error('Failed to generate image');

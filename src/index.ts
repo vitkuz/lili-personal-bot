@@ -32,19 +32,23 @@ export const handler = async (event: any) => {
 
     if (body.callback_query) {
       const callbackQuery = body.callback_query;
-      const chatId = callbackQuery.message.chat.id;
-      const user = callbackQuery.from;
+      // const chatId = callbackQuery.message.chat.id;
+      // const user = callbackQuery.from;
       const data = callbackQuery.data;
       if (data.startsWith('status_')) {
         const predictionId = data.replace('status_', '');
         await handleStatus(bot, chatId, user, predictionId);
         await bot.answerCallbackQuery(callbackQuery.id);
+      } else if (data.startsWith('image_')) {
+        const prompt = data.replace('image_', '');
+        await handleImage(bot, chatId, user, prompt);
+        await bot.answerCallbackQuery(callbackQuery.id);
       }
     } else if (body.message) {
       console.log('if:body.message',JSON.stringify(body, null, 2));
-      const chatId = body.message.chat.id;
+      // const chatId = body.message.chat.id;
       const text = body.message.text;
-      const user = body.message.from;
+      // const user = body.message.from;
 
       console.log({
         chatId,
@@ -60,16 +64,16 @@ export const handler = async (event: any) => {
         switch (command) {
           case BotCommands.START:
             const commands = [
-              { command: BotCommands.START, description: t('commands.start', user.language_code) },
-              { command: BotCommands.IMAGE, description: t('commands.image', user.language_code) }
+              { command: BotCommands.START, description: t('commands.start', userLang) },
+              { command: BotCommands.IMAGE, description: t('commands.image', userLang) }
             ];
 
             const commandsList = commands
                 .map(cmd => `${cmd.command} - ${cmd.description}`)
                 .join('\n');
 
-            await bot.sendMessage(chatId, t('welcome.greeting', user.language_code, { name: user.first_name }));
-            await bot.sendMessage(chatId, t('welcome.commands', user.language_code, { commands: commandsList }));
+            await bot.sendMessage(chatId, t('welcome.greeting', userLang, { name: user.first_name }));
+            await bot.sendMessage(chatId, t('welcome.commands', userLang, { commands: commandsList }));
             break;
           case BotCommands.IMAGE:
             await handleImage(bot, chatId, user, payload || '');
@@ -78,7 +82,7 @@ export const handler = async (event: any) => {
             await handleStatus(bot, chatId, user, payload || '');
             break;
           default:
-            await bot.sendMessage(chatId, t('errors.unknownCommand', user.language_code || 'ru', { command }));
+            await bot.sendMessage(chatId, t('errors.unknownCommand', userLang, { command }));
             break;
         }
       } else {
