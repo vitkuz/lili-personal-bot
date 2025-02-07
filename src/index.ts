@@ -1,7 +1,7 @@
 import TelegramBot from 'node-telegram-bot-api';
 import { config } from './config';
 import { handleStatus } from './handlers/commands';
-import { handleImage } from "./handlers/image";
+import {handleImage, handleVideo} from "./handlers/image";
 import {t} from "./i18n/translate";
 import { isBotCommand } from './utils/bot';
 import { BotCommands } from './constants/bot';
@@ -17,10 +17,19 @@ export const handler = async (event: any) => {
     const body = JSON.parse(event.body);
     console.log('event:body',JSON.stringify(body, null, 2));
 
+    const isEditedMessage = !!body.edited_message;
+
+    if (isEditedMessage) {
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ message: 'Success' }),
+      };
+    }
+
     const chatId = body.message?.chat?.id || body.callback_query?.message?.chat?.id;
     const user = body.message?.from || body.callback_query?.from;
-    const userId = user.id;
-    const userLang = user.language_code;
+    const userId = user?.id;
+    const userLang = user?.language_code;
 
     if(!isAllowedUser(userId)) {
       await bot.sendMessage(chatId, t('errors.unauthorized', userLang));
@@ -78,6 +87,9 @@ export const handler = async (event: any) => {
           case BotCommands.IMAGE:
             await handleImage(bot, chatId, user, payload || '');
             break;
+          case BotCommands.VIDEO:
+            await handleVideo(bot, chatId, user, payload || '');
+            break;
           case BotCommands.STATUS:
             await handleStatus(bot, chatId, user, payload || '');
             break;
@@ -98,7 +110,7 @@ export const handler = async (event: any) => {
   } catch (error) {
     console.error(error);
     return {
-      statusCode: 500,
+      statusCode: 200,
       body: JSON.stringify({ message: 'Internal Server Error' }),
     };
   }

@@ -1,6 +1,7 @@
 export enum BotCommands {
     START = '/start',
     IMAGE = '/image',
+    VIDEO = '/video',
     STATUS = '/status'
 }
 

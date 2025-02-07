@@ -1,5 +1,5 @@
 import TelegramBot from 'node-telegram-bot-api';
-import { generateImage } from './generate-image';
+import {generateImage, generateVideo} from './generate-image';
 import { logger } from '../../utils/logger';
 import { t } from '../../i18n/translate';
 import { DefaultLanguage } from '../../constants/bot';
@@ -45,6 +45,17 @@ async function generateAndRecordTask(prompt: string, chatId: number, lang: strin
     };
 }
 
+async function generateVideoAndRecordTask(prompt: string, chatId: number, lang: string): Promise<ImageTask> {
+    const result = await generateVideo(prompt);
+    await recordImageTask(result.id, result.status, chatId, prompt, lang);
+    return {
+        predictionId: result.id,
+        status: result.status,
+        prompt,
+        lang
+    };
+}
+
 export async function handleImage(bot: TelegramBot, chatId: number, user: TelegramUser, prompt: string) {
     const lang = user.language_code || DefaultLanguage.CODE;
 
@@ -76,6 +87,69 @@ export async function handleImage(bot: TelegramBot, chatId: number, user: Telegr
         // Generate and record all tasks
         const tasks = await Promise.all(
             prompts.map(p => generateAndRecordTask(p, chatId, lang))
+        );
+
+        // Send confirmation for each task
+        for (const task of tasks) {
+            await bot.sendMessage(
+                chatId,
+                t('image.taskCreated', lang, {
+                    id: task.predictionId,
+                    status: task.status,
+                    prompt: task.prompt
+                }),
+                {
+                    reply_markup: {
+                        inline_keyboard: [[
+                            {
+                                text: t('status.checkButton', lang),
+                                callback_data: `status_${task.predictionId}`
+                            }
+                        ]]
+                    }
+                }
+            );
+        }
+    } catch (error) {
+        logger.error('Image generation failed', error as Error);
+        await bot.sendMessage(
+            chatId,
+            t('image.error', lang)
+        );
+    }
+}
+
+export async function handleVideo(bot: TelegramBot, chatId: number, user: TelegramUser, prompt: string) {
+    const lang = user.language_code || DefaultLanguage.CODE;
+
+    if (!prompt) {
+        await bot.sendMessage(
+            chatId,
+            t('image.noPrompt', lang)
+        );
+        return;
+    }
+
+    // Split prompts by empty lines and filter out empty prompts
+    const prompts = prompt.split('\n\n').map(p => p.trim()).filter(p => p.length > 0);
+
+    if (prompts.length === 0) {
+        await bot.sendMessage(
+            chatId,
+            t('image.noPrompt', lang)
+        );
+        return;
+    }
+
+    try {
+        await bot.sendMessage(
+            chatId,
+            t('image.generating', lang, { count: prompts.length })
+        );
+
+        // Generate and record all tasks
+        const tasks = await Promise.all(
+            prompts.map(p => generateVideoAndRecordTask(p, chatId, lang))
         );
 
         // Send confirmation for each task

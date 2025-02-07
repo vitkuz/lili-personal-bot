@@ -40,3 +40,30 @@ export async function generateImage(prompt: string){
         throw new Error('Failed to generate image');
     }
 }
+
+export async function generateVideo(prompt: string){
+    const request = {
+        "taskType": "replicate:videos",
+        "input": {
+            "version": "minimax/video-01",
+            "input": {
+                prompt,
+                "prompt_optimizer": true
+            }
+        }
+    };
+
+    try {
+        const response = await axios.post<ImageGenerationResponse>(ApiEndpoints.IMAGE_GENERATION, request, {
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        logger.debug('Image generation response', response.data);
+        return response.data.data;
+    } catch (error) {
+        logger.error('Failed to generate image', error as Error);
+        throw new Error('Failed to generate image');
+    }
+}
